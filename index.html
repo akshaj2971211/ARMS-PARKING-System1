@@ -1,0 +1,818 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARMS Parking System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+            background: url('https://cdn.leonardo.ai/users/1bd88423-ffe0-48c8-a78f-421527297710/generations/412048fc-ab67-4b57-80dc-649eeed2c076/segments/2:4:1/Lucid_Origin_a_highquality_parking_website_background_image_fe_1.jpg') no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            backdrop-filter: blur(15px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #fff;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+        }
+        label {
+            font-weight: 600;
+            margin-top: 10px;
+            display: block;
+            color: #fff;
+        }
+        .required-sign {
+            color: #ff4d4d;
+            font-size: 1.2em;
+            margin-left: 5px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0 16px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        input, select {
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+        }
+        button {
+            background: #6c5ce7;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #4834d4;
+        }
+        #map {
+            height: 300px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            text-align: center;
+            color: #fff;
+        }
+        th {
+            background: #00cec9;
+            color: #000;
+        }
+        .dashboard-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .location-input-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .location-input-container input {
+            margin-bottom: 0;
+        }
+        .location-input-container button {
+            width: auto;
+            white-space: nowrap;
+            padding: 12px 20px;
+            margin-bottom: 16px;
+        }
+        #intro-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+            color: white;
+            padding: 20px;
+            box-sizing: border-box;
+            transition: opacity 0.5s ease;
+        }
+        #intro-screen h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+        #intro-screen p {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+        #skip-btn {
+            padding: 8px 20px;
+            background-color: #00cec9;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #skip-btn:hover {
+            background-color: #00b3a3;
+        }
+        .ppt-link {
+            text-align: center;
+            margin: 20px 0 0 0;
+        }
+        .ppt-link a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1em;
+            transition: color 0.3s;
+        }
+        .ppt-link a:hover {
+            color: #81C784;
+            text-decoration: underline;
+        }
+        .toggle-button-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }               
+        .toggle-button-container button {
+            width: auto;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            background-color: #6c5ce7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }               
+        .toggle-button-container button:hover {
+            background-color: #4834d4;
+        }
+    </style>
+<script defer data-domain="armsparking.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script><script type="text/javascript" src="https://tiiny.host/ad-script.js"></script></head>
+<body>
+    <div id="intro-screen">
+        <h1>Welcome to ARMS Parking System!</h1>
+        <p>Loading your profile...</p>
+    </div>
+    <div class="overlay"></div>
+    <div class="container" id="dashboard" style="display:none">
+        <h2>Owner Dashboard</h2>
+        <div class="dashboard-controls">
+            <button onclick="downloadAllReceipts()">Download All</button>
+            <button onclick="clearReservations()">Clear All</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Phone</th>
+                    <th>Owner Email</th>
+                    <th>Bookings</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="dashboard-body"></tbody>
+        </table>
+        <button onclick="toggleDashboardWithPassword()">Back to Reservation Form</button>
+    </div>
+    <div class="toggle-button-container">
+        <button id="toggle-dashboard-btn" onclick="toggleDashboardWithPassword()">Toggle Owner Dashboard</button>
+    </div>
+    <div class="container" id="reservation-form">
+        <h1>Book Your Parking Spot</h1>
+        <div class="ppt-link">
+            <p><a href="https://www.canva.com/design/DAGvLASPv6c/u4-hAUFhcuShniAaLWoc0w/view?utm_content=DAGvLASPv6c&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h01aed87f78" target="_blank">Click here to see a PPT based on this website</a></p>
+        </div>
+        <label for="ownerName">Name<span class="required-sign">*</span></label>
+        <input type="text" id="ownerName" required>
+        <label for="ownerPhone">Phone<span class="required-sign">*</span></label>
+        <input type="tel" id="ownerPhone" required maxlength="10" pattern="[0-9]{10}" placeholder="10-digit number" title="Please enter a 10-digit phone number." onkeypress="return (event.charCode >= 48 && event.charCode <= 57)">
+        <label for="licensePlate">License Plate<span class="required-sign">*</span></label>
+        <input type="text" id="licensePlate" required>
+        <label for="ownerEmail">Owner's Email<span class="required-sign">*</span></label>
+        <input type="email" id="ownerEmail" required placeholder="owner@example.com">
+        <label for="paymentMethod">Payment Method<span class="required-sign">*</span></label>
+        <select id="paymentMethod" required>
+            <option value="">--Select--</option>
+            <option>Google Pay</option>
+            <option>PhonePe</option>
+            <option>UPI</option>
+            <option>Cash</option>
+            <option>PAYTEM</option>
+            <option>STRIPE</option>
+            <option>CASHIFY</option>
+            <option>PAYPAL</option>
+            <option>CASHAPP</option>
+            <option>AMEX PLATINUM</option>
+        </select>
+        <label for="time">Select Time<span class="required-sign">*</span> <span id="slotsLeft"></span></label>
+        <select id="time" required>
+            <option value="">--Select Time--</option>
+            <option>9 AM</option>
+            <option>10 AM</option>
+            <option>11 AM</option>
+            <option>12 PM</option>
+            <option>1 PM</option>
+            <option>2 PM</option>
+            <option>3 PM</option>
+            <option>4 PM</option>
+            <option>5 PM</option>
+            <option>6 PM</option>
+            <option>7 PM</option>
+            <option>8 PM</option>
+            <option>9 PM</option>
+        </select>
+        <label for="duration">Duration (Hours)<span class="required-sign">*</span></label>
+        <input type="number" id="duration" min="1" max="12" required>
+        <label for="date">Date<span class="required-sign">*</span></label>
+        <input type="date" id="date" required>
+        <label for="location">Location (enter address or click on map)<span class="required-sign">*</span></label>
+        <div id="map"></div>
+        <div class="location-input-container">
+            <input type="text" id="location" required>
+            <button onclick="geocodeLocation()">Locate Address</button>
+        </div>
+        <div id="price-display">Total Price: ₹0</div>
+        <button onclick="reserveSpot()">Reserve Spot</button>
+        <div id="qr-container"></div>
+        <button id="download-pdf-btn" style="display:none">Download Receipt</button>
+    </div>
+    <script>
+        // --- Configuration and Data Storage ---
+        const config = {
+            ownerPassword: "admin123", // WARNING: In a real application, this should be server-side.
+            dashboardLockDuration: 120000, // 2 minute in milliseconds
+            maxIncorrectAttempts: 5,
+            maxSlots: 20,
+            basePrice: 50, // Base price per hour
+            pricingRules: {
+                '12 PM': 70, // Higher price for lunch hour
+                '1 PM': 70,
+                '5 PM': 65, // Higher price for evening rush hour
+                '6 PM': 65
+            },
+            emailServiceId: 'service_02gs6vz',
+            emailTemplateId: 'template_1pcbqai',
+            emailPublicKey: 'iwpLpp7P9gM86e0c3'
+        };
+
+        let reservationData = JSON.parse(localStorage.getItem('parking_data') || '[]');
+        const dashboardBody = document.getElementById('dashboard-body');
+        let incorrectAttempts = 0;
+
+        // Initialize EmailJS with Public Key
+        (function() {
+            emailjs.init(config.emailPublicKey);
+        })();
+
+        // --- Map Initialization ---
+        let map, marker;
+
+        function initMap() {
+            const indiaBounds = L.latLngBounds([[8.4, 68.7], [37.6, 97.25]]);
+            map = L.map('map', {
+                center: [30.7333, 76.7794],
+                zoom: 5,
+                minZoom: 5,
+                maxBounds: indiaBounds,
+                maxBoundsViscosity: 1.0,
+            });
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            marker = L.marker([30.7333, 76.7794], { draggable: true }).addTo(map);
+            marker.on('dragend', updateLocationInputFromMarker);
+            map.on('click', e => {
+                marker.setLatLng(e.latlng);
+                updateLocationInputFromMarker();
+            });
+            updateLocationInputFromMarker();
+        }
+
+        async function updateLocationInputFromMarker() {
+            const latlng = marker.getLatLng();
+            const placeName = await getPlaceNameFromCoords(latlng.lat, latlng.lng);
+            document.getElementById('location').value = placeName;
+        }
+
+        async function geocodeLocation() {
+            const address = document.getElementById('location').value;
+            if (!address) {
+                Swal.fire('Error', 'Please enter an address to locate.', 'error');
+                return;
+            }
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&countrycodes=in`);
+                const data = await response.json();
+                if (data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    const newLatLng = [lat, lon];
+                    map.setView(newLatLng, 15);
+                    marker.setLatLng(newLatLng);
+                    document.getElementById('location').value = data[0].display_name;
+                    Swal.fire('Success', 'Map pointer updated to the specified location!', 'success');
+                } else {
+                    Swal.fire('Error', 'Location not found. Please try a different address or click on the map.', 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Could not connect to location service.', 'error');
+            }
+        }
+
+        async function getPlaceNameFromCoords(lat, lon) {
+            try {
+                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                const data = await response.json();
+                return data.display_name || 'Unknown Location';
+            } catch (error) {
+                console.error("Reverse geocoding failed:", error);
+                return 'Unknown Location';
+            }
+        }
+
+        // --- Pricing and Form Logic ---
+        function calculatePrice() {
+            const duration = parseInt(document.getElementById('duration').value) || 0;
+            const selectedTime = document.getElementById('time').value;
+            let pricePerHour = config.pricingRules[selectedTime] || config.basePrice;
+            let totalPrice = duration * pricePerHour;
+
+            const userEmail = document.getElementById('ownerEmail').value;
+            const bookings = getBookingCount(userEmail);
+
+            let discountPercentage = 0;
+            if (bookings >= 29) {
+                discountPercentage = 0.30;
+            } else if (bookings >= 19) {
+                discountPercentage = 0.20;
+            } else if (bookings >= 9) {
+                discountPercentage = 0.10;
+            }
+
+            const discount = totalPrice * discountPercentage;
+            totalPrice -= discount;
+
+            return totalPrice;
+        }
+
+        function updatePrice() {
+            const totalPrice = calculatePrice();
+            document.getElementById('price-display').textContent = `Total Price: ₹${totalPrice}`;
+        }
+
+        document.getElementById('duration').addEventListener('input', updatePrice);
+        document.getElementById('time').addEventListener('change', updatePrice);
+        document.getElementById('ownerEmail').addEventListener('change', updatePrice);
+
+        function validateForm() {
+            const fields = [
+                { id: 'ownerName', name: 'Name' },
+                { id: 'ownerPhone', name: 'Phone' },
+                { id: 'licensePlate', name: 'License Plate' },
+                { id: 'ownerEmail', name: 'Owner Email' },
+                { id: 'paymentMethod', name: 'Payment Method' },
+                { id: 'time', name: 'Time' },
+                { id: 'duration', name: 'Duration' },
+                { id: 'date', name: 'Date' },
+                { id: 'location', name: 'Location' }
+            ];
+            for (const field of fields) {
+                const element = document.getElementById(field.id);
+                if (!element.value.trim()) {
+                    Swal.fire('Error', `Please fill in the "${field.name}" field.`, 'error');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function resetForm() {
+            document.getElementById('ownerName').value = '';
+            document.getElementById('ownerPhone').value = '';
+            document.getElementById('licensePlate').value = '';
+            document.getElementById('ownerEmail').value = '';
+            document.getElementById('paymentMethod').value = '';
+            document.getElementById('time').value = '';
+            document.getElementById('duration').value = '';
+            document.getElementById('date').value = '';
+            document.getElementById('location').value = '';
+            document.getElementById('price-display').textContent = 'Total Price: ₹0';
+            document.getElementById('qr-container').innerHTML = '';
+            document.getElementById('download-pdf-btn').style.display = 'none';
+        }
+
+        async function reserveSpot() {
+            if (!validateForm()) {
+                return;
+            }
+
+            const selectedDate = document.getElementById('date').value;
+            const selectedTime = document.getElementById('time').value;
+            const bookingsForTime = reservationData.filter(res => res.Date === selectedDate && res.Time === selectedTime);
+
+            if (bookingsForTime.length >= config.maxSlots) {
+                return Swal.fire('Error', 'This time slot is full. Please choose another.', 'error');
+            }
+
+            const pos = marker.getLatLng();
+            const placeName = await getPlaceNameFromCoords(pos.lat, pos.lng);
+            const spot = reservationData.length + 1;
+            const duration = document.getElementById('duration').value;
+            const userEmail = document.getElementById('ownerEmail').value;
+            const bookings = getBookingCount(userEmail);
+            const currentBookings = bookings + 1;
+            const totalPrice = calculatePrice();
+
+            const data = {
+                '#': spot,
+                Name: document.getElementById('ownerName').value,
+                Phone: document.getElementById('ownerPhone').value,
+                LicensePlate: document.getElementById('licensePlate').value,
+                OwnerEmail: userEmail,
+                PaymentMethod: document.getElementById('paymentMethod').value,
+                Time: document.getElementById('time').value,
+                Date: document.getElementById('date').value,
+                Duration: `${duration} hours`,
+                Location: placeName,
+                Price: `₹${totalPrice}`
+            };
+
+            reservationData.push(data);
+            localStorage.setItem('parking_data', JSON.stringify(reservationData));
+
+            generateQRCode(`Spot ${spot}: ${data.Name}`);
+            showPDF(data);
+            confetti();
+
+            let discountMessage = '';
+            if (currentBookings >= 30) {
+                discountMessage = `🎉 You have unlocked a permanent **30% loyalty discount** on all future bookings!`;
+            } else if (currentBookings >= 20) {
+                discountMessage = `🎉 Congratulations! This is your ${currentBookings}th booking. You received a **20% discount**!`;
+            } else if (currentBookings >= 10) {
+                discountMessage = `🎉 Congratulations! This is your ${currentBookings}th booking. You received a **10% discount**!`;
+            }
+            const successMessage = discountMessage || `Spot #${spot} is booked!`;
+
+            Swal.fire('Reserved!', successMessage, 'success');
+            document.getElementById('download-pdf-btn').style.display = 'block';
+            renderDashboard();
+            updateAvailableSlots();
+            resetForm();
+
+            sendOwnerEmail(data, userEmail);
+        }
+
+        function sendOwnerEmail(bookingData, ownerEmail) {
+            const templateParams = {
+                to_email: ownerEmail,
+                from_name: bookingData.Name,
+                customer_name: bookingData.Name,
+                license_plate: bookingData.LicensePlate,
+                time: bookingData.Time,
+                date: bookingData.Date,
+                location: bookingData.Location,
+                price: bookingData.Price,
+                parking_spot: bookingData['#']
+            };
+
+            emailjs.send(config.emailServiceId, config.emailTemplateId, templateParams)
+                .then(function(response) {
+                    console.log('Email successfully sent!', response.status, response.text);
+                }, function(error) {
+                    console.log('Failed to send email...', error);
+                });
+        }
+
+        function generateQRCode(text) {
+            const container = document.getElementById('qr-container');
+            container.innerHTML = '';
+            new QRCode(container, { text, width: 128, height: 128 });
+        }
+
+        function showPDF(indexOrData) {
+            let data = indexOrData;
+            if (typeof indexOrData === 'number') {
+                data = reservationData[indexOrData];
+            }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFillColor(0, 0, 0);
+            doc.rect(0, 0, doc.internal.pageSize.getWidth(), doc.internal.pageSize.getHeight(), 'F');
+            doc.setFontSize(22);
+            doc.setTextColor(255, 255, 255);
+            doc.text('Parking Reservation Receipt', 20, 30);
+            doc.setFontSize(12);
+            doc.setTextColor(200, 200, 200);
+            doc.text('ARMS Parking System', 20, 40);
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(255, 255, 255);
+            doc.line(20, 45, 190, 45);
+            let y = 60;
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.setFont(undefined, 'bold');
+
+            doc.text(`Booking ID: ${data['#']}`, 20, y);
+            doc.text(`Name: ${data.Name}`, 20, y + 10);
+            doc.text(`Phone: ${data.Phone}`, 20, y + 20);
+            doc.text(`License Plate: ${data.LicensePlate}`, 20, y + 30);
+            doc.text(`Time: ${data.Time}`, 20, y + 40);
+            doc.text(`Date: ${data.Date}`, 20, y + 50);
+            doc.text(`Duration: ${data.Duration}`, 20, y + 60);
+            doc.text(`Location: ${data.Location}`, 20, y + 70);
+            doc.setFontSize(12);
+            doc.setTextColor(255, 255, 255);
+            doc.text(`Total Price: ${data.Price}`, 20, y + 90);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('Thank you for booking with us!', 20, y + 110);
+            doc.save(`Receipt_${data['#']}.pdf`);
+        }
+
+        async function showUserBookings(email) {
+            const userBookings = reservationData.filter(res => res.OwnerEmail === email);
+            let detailsHtml = userBookings.map((res, index) => {
+                return `
+                    <div>
+                        <strong>Booking #${res['#']}</strong>
+                        <p>License Plate: ${res.LicensePlate}</p>
+                        <p>Date: ${res.Date}</p>
+                        <p>Time: ${res.Time}</p>
+                        <p>Price: ${res.Price}</p>
+                        <button onclick="showPDF(${reservationData.indexOf(res)})">Download Receipt</button>
+                        <hr/>
+                    </div>
+                `;
+            }).join('');
+
+            Swal.fire({
+                title: `Bookings for ${email}`,
+                html: `<div style="text-align: left;">${detailsHtml}</div>`,
+                width: '800px',
+                showCancelButton: false,
+                showConfirmButton: false,
+                customClass: {
+                    popup: 'swal2-responsive'
+                }
+            });
+        }
+
+        async function toggleDashboardWithPassword() {
+            const dashboard = document.getElementById('dashboard');
+            const reservationForm = document.getElementById('reservation-form');
+            const toggleBtn = document.getElementById('toggle-dashboard-btn');
+
+            if (dashboard.style.display !== 'none') {
+                dashboard.style.display = 'none';
+                reservationForm.style.display = 'block';
+                toggleBtn.textContent = 'Toggle Owner Dashboard';
+                return;
+            }
+
+            const lockTimestamp = localStorage.getItem('dashboardLock');
+            const now = new Date().getTime();
+
+            if (lockTimestamp && now < parseInt(lockTimestamp)) {
+                const timeLeft = Math.ceil((parseInt(lockTimestamp) - now) / 1000);
+                Swal.fire({
+                    title: 'Dashboard Locked',
+                    text: `Too many failed attempts. Please try again in ${timeLeft} seconds.`,
+                    icon: 'warning',
+                    timer: timeLeft * 1000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+
+            const { value: password } = await Swal.fire({
+                title: 'Enter Password',
+                input: 'password',
+                inputPlaceholder: 'Enter dashboard password',
+                showCancelButton: true,
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Please enter a password!';
+                    }
+                }
+            });
+
+            if (password === config.ownerPassword) {
+                incorrectAttempts = 0;
+                localStorage.removeItem('dashboardLock');
+                dashboard.style.display = 'block';
+                reservationForm.style.display = 'none';
+                toggleBtn.textContent = 'Back to Reservation Form';
+                Swal.fire('Success', 'Dashboard unlocked!', 'success');
+            } else if (password) {
+                incorrectAttempts++;
+                if (incorrectAttempts >= config.maxIncorrectAttempts) {
+                    const lockUntil = new Date().getTime() + config.dashboardLockDuration;
+                    localStorage.setItem('dashboardLock', lockUntil);
+                    incorrectAttempts = 0;
+                    Swal.fire('Error', `Too many failed attempts. The dashboard is locked for ${config.dashboardLockDuration / 1000} seconds.`, 'error');
+                } else {
+                    Swal.fire('Error', 'Incorrect password!', 'error');
+                }
+            }
+        }
+
+        function renderDashboard() {
+            dashboardBody.innerHTML = '';
+            const consolidatedBookings = {};
+
+            reservationData.forEach(booking => {
+                if (!consolidatedBookings[booking.OwnerEmail]) {
+                    consolidatedBookings[booking.OwnerEmail] = {
+                        ...booking,
+                        bookingCount: 1,
+                    };
+                } else {
+                    consolidatedBookings[booking.OwnerEmail].bookingCount++;
+                }
+            });
+
+            Object.values(consolidatedBookings).forEach(user => {
+                const row = `<tr>
+                    <td>${user.Name}</td>
+                    <td>${user.Phone}</td>
+                    <td>${user.OwnerEmail}</td>
+                    <td>${user.bookingCount}</td>
+                    <td>
+                        <button onclick="showUserBookings('${user.OwnerEmail}')">View Details</button>
+                        <button onclick="downloadUserReceipts('${user.OwnerEmail}')">Download All</button>
+                        <button onclick="cancelUserReservations('${user.OwnerEmail}')">Cancel All</button>
+                    </td>
+                </tr>`;
+                dashboardBody.innerHTML += row;
+            });
+        }
+
+        function downloadUserReceipts(email) {
+            const userBookings = reservationData.filter(res => res.OwnerEmail === email);
+            userBookings.forEach(res => showPDF(res));
+        }
+
+        function cancelUserReservations(email) {
+            Swal.fire({
+                title: `Are you sure you want to cancel all reservations for ${email}?`,
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, cancel them all!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const remainingReservations = reservationData.filter(res => res.OwnerEmail !== email);
+                    localStorage.setItem('parking_data', JSON.stringify(remainingReservations));
+                    reservationData.length = 0;
+                    reservationData.push(...remainingReservations);
+                    renderDashboard();
+                    updateAvailableSlots();
+                    Swal.fire('Cancelled!', 'All reservations for this user have been cleared.', 'success');
+                }
+            });
+        }
+
+        function downloadAllReceipts() {
+            reservationData.forEach(res => showPDF(res));
+        }
+
+        function clearReservations() {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, clear all!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('parking_data');
+                    reservationData.length = 0;
+                    renderDashboard();
+                    updateAvailableSlots();
+                    Swal.fire('Cleared!', 'All reservations have been cleared.', 'success');
+                }
+            });
+        }
+
+        function getBookingCount(email) {
+            if (!email) return 0;
+            return reservationData.filter(res => res.OwnerEmail === email).length;
+        }
+
+        function updateAvailableSlots() {
+            const selectedTime = document.getElementById('time').value;
+            const selectedDate = document.getElementById('date').value;
+            const bookingsForTime = reservationData.filter(res => res.Date === selectedDate && res.Time === selectedTime);
+            const slotsLeft = config.maxSlots - bookingsForTime.length;
+            const slotsLeftElement = document.getElementById('slotsLeft');
+
+            if (selectedTime && selectedDate) {
+                slotsLeftElement.textContent = `(${slotsLeft} slot${slotsLeft !== 1 ? 's' : ''} left)`;
+                slotsLeftElement.style.color = slotsLeft <= 3 ? '#ff4d4d' : '#00cec9';
+            } else {
+                slotsLeftElement.textContent = '';
+            }
+        }
+
+        function showIntroScreen() {
+            const introScreen = document.getElementById('intro-screen');
+            const introHeading = introScreen.querySelector('h1');
+            const introText = introScreen.querySelector('p');
+            const userEmail = document.getElementById('ownerEmail').value;
+            const bookings = getBookingCount(userEmail);
+            const nextBooking = bookings + 1;
+
+            introHeading.textContent = "Welcome to ARMS Parking System!";
+            let discountMessage = '';
+            if (nextBooking >= 30) {
+                discountMessage = `<br>🎉 You have a permanent **30% loyalty discount** on all bookings!`;
+            } else if (nextBooking >= 20) {
+                discountMessage = `<br>🎉 Bookings **20 to 29** receive a **20% discount**!`;
+            } else if (nextBooking >= 10) {
+                discountMessage = `<br>🎉 Bookings **10 to 19** receive a **10% discount**!`;
+            }
+
+            if (bookings > 0) {
+                introText.innerHTML = `You have made **${bookings}** booking(s) with us.${discountMessage}`;
+            } else {
+                introText.innerHTML = `Your hassle-free solution for booking a parking spot. ${discountMessage}`;
+            }
+
+            introScreen.style.opacity = '1';
+            document.body.style.overflow = 'hidden';
+
+            setTimeout(() => {
+                introScreen.style.opacity = '0';
+                setTimeout(() => {
+                    introScreen.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }, 500);
+            }, 4000);
+        }
+
+        document.getElementById('time').addEventListener('change', updateAvailableSlots);
+        document.getElementById('date').addEventListener('change', updateAvailableSlots);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            renderDashboard();
+            showIntroScreen();
+            updateAvailableSlots();
+        });
+    </script>
+</body>
+</html>
